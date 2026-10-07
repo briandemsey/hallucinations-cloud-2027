@@ -57,6 +57,36 @@ def _fallback(reason: str, status: int) -> JSONResponse:
     return JSONResponse({"ok": False, "reason": reason}, status_code=status)
 
 
+def _key_shape() -> dict:
+    """Facts about the stored key's shape, never the key itself."""
+    raw = _settings.anthropic_api_key or ""
+    key = raw.strip()
+    if key.startswith("sk-ant-"):
+        looks_like = "an Anthropic key"
+    elif key.startswith("sk-proj-") or key.startswith("sk-"):
+        looks_like = "an OpenAI-style key"
+    elif key.startswith("xai-"):
+        looks_like = "an xAI key"
+    elif not key:
+        looks_like = "nothing"
+    else:
+        looks_like = "not a recognised API key"
+    return {
+        "present": bool(key),
+        "length": len(key),
+        "starts_with_sk_ant": key.startswith("sk-ant-"),
+        "looks_like": looks_like,
+        "has_quotes": any(q in key for q in "\"'"),
+        "has_inner_spaces": any(c.isspace() for c in key),
+        "had_outer_spaces": raw != key,
+    }
+
+
+@router.get("/keycheck")
+def keycheck():
+    return _key_shape()
+
+
 @router.post("/check")
 def check(body: CheckIn, request: Request):
     message = (body.message or "").strip()

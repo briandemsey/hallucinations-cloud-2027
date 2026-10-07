@@ -141,3 +141,14 @@ def test_request_matches_the_installed_sdk():
     fake = FakeClient(GOOD)
     detector.assess("hello", client=fake)
     inspect.signature(Messages.create).bind(None, **fake.calls[0])
+
+
+def test_keycheck_reports_shape_and_never_the_key(monkeypatch):
+    secret = "sk-ant-api03-" + "Z" * 40
+    monkeypatch.setattr(check_api._settings, "anthropic_api_key", " " + secret + "\n")
+    r = client.get("/api/keycheck")
+    body = r.json()
+    assert body["starts_with_sk_ant"] is True and body["length"] == len(secret) and body["had_outer_spaces"] is True
+    assert secret not in r.text and "ZZZZ" not in r.text
+    monkeypatch.setattr(check_api._settings, "anthropic_api_key", "sk-proj-abc")
+    assert client.get("/api/keycheck").json()["looks_like"] == "an OpenAI-style key"
