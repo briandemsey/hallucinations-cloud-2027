@@ -67,7 +67,7 @@ var HBot = (function () {
   };
   var box = document.getElementById('message'), body = document.getElementById('result-body'),
       hint = document.getElementById('result-hint'), err = document.getElementById('error'),
-      count = document.getElementById('count'), stepNote = document.getElementById('step-note');
+      count = document.getElementById('count');
 
   function el(tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
 
@@ -95,13 +95,13 @@ var HBot = (function () {
   }
   function updateCount() { count.textContent = box.value.length.toLocaleString('en-US') + ' / 20,000'; }
   function run(isExample) {
-    err.hidden = true; stepNote.hidden = true;
+    err.hidden = true;
     try { render(HBot.analyze(box.value)); hint.textContent = isExample ? 'Shown for a made-up example. Paste your own message to replace it.' : 'For the message you pasted.'; }
     catch (e) { err.textContent = e.message; err.hidden = false; }
   }
   document.getElementById('check-form').addEventListener('submit', function (e) { e.preventDefault(); run(false); });
   document.getElementById('clear').addEventListener('click', function () {
-    box.value = ''; updateCount(); err.hidden = true; stepNote.hidden = true; body.textContent = '';
+    box.value = ''; updateCount(); err.hidden = true; body.textContent = '';
     body.appendChild(el('p', 'Paste a message and click Check message. The warning signs, the words that triggered them, and next steps appear here.', 'hint'));
     hint.textContent = 'Ready when you are.'; box.focus();
   });
@@ -109,7 +109,6 @@ var HBot = (function () {
   Array.prototype.forEach.call(document.querySelectorAll('[data-example]'), function (b) {
     b.addEventListener('click', function () { box.value = EXAMPLES[b.getAttribute('data-example')]; updateCount(); run(true); });
   });
-  document.getElementById('step-up').addEventListener('click', function () { stepNote.hidden = false; });
   box.value = EXAMPLES.bank; updateCount(); run(true);
   hint.textContent = 'Shown for the made-up bank example. Paste your own message to replace it.';
 })();

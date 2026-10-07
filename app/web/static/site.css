@@ -1,6 +1,6 @@
 img { max-width: 100%; }
 [hidden] { display: none !important; }
-/* Layout: same header and window as the Hallucinations.cloud white home page; the window holds the paste box on the left and the assessment on the right. */
+/* Layout: white ground, header with the HB mark, one window holding the paste box on the left and the assessment on the right. */
 :root {
   --paper: #ffffff;
   --wash: #f3f6fb;
@@ -27,7 +27,7 @@ h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
 .top { border-bottom: 1px solid var(--line); background: var(--paper); }
 .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; padding-block: 14px; }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 800; font-size: 1.25rem; }
-.brand img { width: 44px; height: 44px; }
+.brand img { width: 52px; height: 52px; }
 .top nav { display: flex; gap: 6px 26px; flex-wrap: wrap; }
 .top nav a { text-decoration: none; font-size: 1rem; color: var(--ink-soft); padding-block: 4px; border-bottom: 2px solid transparent; }
 .top nav a:hover { color: var(--ink); border-bottom-color: var(--line); }
@@ -35,7 +35,6 @@ h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
 
 .hero { text-align: center; padding-block: 52px 32px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
-.eyebrow img { width: 26px; height: 26px; }
 .hero h1 { font-size: clamp(2.1rem, 5.2vw, 3.4rem); font-weight: 800; margin-block: 16px 14px; letter-spacing: -0.01em; }
 .hero p { font-size: 1.25rem; color: var(--ink-soft); max-width: 44ch; margin: 0 auto; }
 
@@ -89,10 +88,6 @@ textarea::placeholder { color: #7b8198; }
 .next li::before { content: ""; position: absolute; left: 4px; top: 0.72em; width: 9px; height: 9px; border-radius: 50%; background: var(--action); }
 .method { margin: 18px 0 0; font-size: 0.9rem; color: var(--ink-soft); }
 
-.step-up { margin-top: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--wash); padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; align-items: center; }
-.step-up b { display: block; font-weight: 800; font-size: 1.1rem; }
-.step-up span { font-size: 0.98rem; color: var(--ink-soft); }
-#step-note { grid-column: 1 / -1; margin: 0; color: var(--action); font-weight: 600; font-size: 0.95rem; }
 
 .band { background: var(--wash); padding-block: 56px; }
 .band h2 { font-size: clamp(1.6rem, 3.4vw, 2.1rem); font-weight: 800; text-align: center; margin-bottom: 32px; }
@@ -127,8 +122,6 @@ footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
   .top nav { justify-content: center; }
   .hero { padding-block: 36px 24px; }
   .pane { padding: 22px 18px; }
-  .step-up { grid-template-columns: minmax(0, 1fr); }
-  .step-up .btn { width: 100%; text-align: center; }
   .founder .card { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
   .founder .row { justify-content: center; }
 }

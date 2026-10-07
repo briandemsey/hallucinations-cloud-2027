@@ -3,91 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hallucinations.cloud</title>
-  <meta name="description" content="Ask one question and eight AI models answer. You see a rating first, then every answer in full.">
+  <title>H-BOTdetector</title>
+  <meta name="description" content="Paste a text, an email or a chat and see the warning signs before you click, reply or pay.">
   <link rel="icon" type="image/png" href="/static/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
-  <link rel="stylesheet" href="/static/home.css">
+  <link rel="stylesheet" href="/static/site.css">
 </head>
 <body>
 {% include "_header.html" %}
 <main>
   <section class="hero">
     <div class="wrap">
-      <span class="eyebrow"><img src="/static/logo.png" alt="">H-LLM Multi-Model</span>
-      <h1>Ask once. Eight AI models answer.</h1>
-      <p>You see a rating first. Then every answer in full, so you can judge where they agree and where they do not.</p>
-      <div class="btns">
-        <a class="btn btn-primary" href="#ask">Ask a question</a>
-        <a class="btn btn-ghost" href="/h-bot">Check a suspicious message</a>
-      </div>
+      <span class="eyebrow">A second look before you act</span>
+      <h1>Who's on the other end?</h1>
+      <p>Paste a text, an email or a chat. See the warning signs before you click, reply or pay.</p>
     </div>
   </section>
 
-  <section class="stage" id="ask">
+  <section class="stage" id="check">
     <div class="wrap">
       <div class="window">
-        <div class="window-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>H-LLM Multi-Model Verification</div>
+        <div class="window-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>H-BOTdetector Message Check</div>
         <div class="window-rule"></div>
-        <form class="steps" id="ask-form">
-          <div class="step">
-            <div>
-              <h3><label for="question">1. Enter your question</label></h3>
-              <p class="hint">Any question, in plain words.</p>
+        <div class="panes">
+          <form class="pane" id="check-form">
+            <h2><label for="message">Paste the message</label></h2>
+            <p class="hint">Your message stays on this device. Nothing is saved.</p>
+            <textarea id="message" name="message" maxlength="20000" placeholder="Paste the message here..."></textarea>
+            <div class="row">
+              <button class="btn btn-primary" type="submit" id="run">Check message</button>
+              <button class="btn btn-ghost" type="button" id="clear">Clear</button>
+              <span class="count" id="count">0 / 20,000</span>
             </div>
-            <div>
-              <textarea id="question" name="question" placeholder="Ask anything..."></textarea>
+            <p id="error" role="alert" hidden></p>
+            <div class="examples">
+              <p>Or try a made-up example:</p>
               <div class="row">
-                <button class="btn btn-primary" type="submit" id="submit">Submit</button>
-                <p class="note" id="sample-note" hidden>The question box is not connected yet. It is coming soon.</p>
+                <button class="btn-small" type="button" data-example="bank">Bank impersonation</button>
+                <button class="btn-small" type="button" data-example="family">Family emergency</button>
+                <button class="btn-small" type="button" data-example="bot">Helpful bot</button>
               </div>
             </div>
+          </form>
+
+          <div class="pane" id="result" aria-live="polite">
+            <h2>Your assessment</h2>
+            <p class="hint" id="result-hint">Shown for the made-up bank example. Paste your own message to replace it.</p>
+            <div id="result-body"></div>
           </div>
-          <div class="step">
-            <div>
-              <h3>2. Confirm your cell phone</h3>
-              <p class="hint">One text message with a code. No password. Free.</p>
-            </div>
-            <div class="phone"><span class="field">(555) 123-4567</span><span>We text you a six-digit code after you click Submit.</span></div>
-          </div>
-          <div class="step">
-            <div>
-              <h3>3. Your rating comes first</h3>
-              <p class="hint">The eight answers and the full review sit below it.</p>
-            </div>
-            <div class="result">
-              <span class="tag">Illustration only, not a live result</span>
-              <q>Is this message a scam? &ldquo;This is your bank's fraud department. We detected a $4,850 transfer. Click here immediately to stop it.&rdquo;</q>
-              <p class="verdict">Almost certainly a scam. Do not click. Call the number on your card.</p>
-              <div class="meter"><span><b>9</b> out of 10 rating</span><span>The models that answered agree</span></div>
-            </div>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="band">
     <div class="wrap">
-      <h2>What you get, in this order</h2>
-      <div class="gets">
-        <div class="get"><span class="n">FIRST</span><h3>A rating</h3><p>One number and one sentence, before anything else.</p></div>
-        <div class="get"><span class="n">THEN</span><h3>Eight answers</h3><p>Each model's reply in full. Nothing is trimmed or blended.</p></div>
-        <div class="get"><span class="n">THEN</span><h3>Three reviews <span class="swatches" aria-hidden="true"><i style="background:#d42f4f"></i><i style="background:#3b78c9"></i><i style="background:#7a5bb5"></i></span></h3><p>Red looks for what is wrong. Blue looks for what holds up. Purple weighs the two.</p></div>
-        <div class="get"><span class="n">LAST</span><h3>An overall assessment</h3><p>What to trust, what to doubt, and what to check for yourself.</p></div>
+      <h2>What this check can and cannot tell you</h2>
+      <div class="facts">
+        <div class="fact"><h3>It spots pressure tactics</h3><p>Urgency, threats, secrecy, gift cards, requests for codes and passwords. It shows you the exact words it found.</p></div>
+        <div class="fact"><h3>It cannot name the sender</h3><p>A person can send a scam and a bot can be helpful. Text alone does not show who, or what, wrote it.</p></div>
+        <div class="fact"><h3>No match is not all clear</h3><p>Scammers reword their messages every day. If a request is unexpected, verify it through a number you already trust.</p></div>
       </div>
-    </div>
-  </section>
-
-  <section class="hbot" id="hbot">
-    <div class="wrap">
-      <div>
-        <h2>Received a text or email that feels wrong?</h2>
-        <p>Paste it into H-BOTdetector for a quick look at the warning signs. If you are still unsure, send it on to the eight models.</p>
-      </div>
-      <a class="btn btn-ghost" href="/h-bot">Open H-BOTdetector</a>
     </div>
   </section>
 
@@ -96,9 +74,9 @@
       <div class="card">
         <img src="/static/brian.jpg" alt="Brian Demsey">
         <div>
-          <blockquote>&ldquo;AI does not need more power. It needs more truth.&rdquo;</blockquote>
-          <cite>Brian Demsey, founder</cite>
-          <div class="btns">
+          <h2>Plain talk about AI, bots and scams</h2>
+          <p>Brian Demsey built this tool. He writes about what to trust and what to doubt.</p>
+          <div class="row">
             <a class="btn btn-primary" href="https://brianrdemsey.substack.com">Read Brian's Substack</a>
             <span class="btn btn-ghost">The book: I Found the Bug!</span>
           </div>
@@ -108,11 +86,6 @@
   </section>
 </main>
 {% include "_footer.html" %}
-<script>
-document.getElementById('ask-form').addEventListener('submit', function (e) {
-  e.preventDefault();
-  document.getElementById('sample-note').hidden = false;
-});
-</script>
+<script src="/static/hbot.js"></script>
 </body>
 </html>
