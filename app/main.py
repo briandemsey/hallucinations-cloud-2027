@@ -18,4 +18,9 @@ templates = Jinja2Templates(directory=BASE_DIR / "web" / "templates")
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse(request, "index.html", {})
+    return templates.TemplateResponse(request, "index.html", {"active": "home"})
+
+
+@app.get("/h-bot", response_class=HTMLResponse)
+def hbot(request: Request):
+    return templates.TemplateResponse(request, "hbot.html", {"active": "hbot"})
