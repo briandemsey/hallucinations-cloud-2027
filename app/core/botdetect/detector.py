@@ -94,7 +94,6 @@ def assess(message: str, client=None) -> Assessment:
         response = client.messages.create(
             model=settings.primary_model_name,
             max_tokens=600,
-            temperature=0,
             system=SYSTEM_PROMPT,
             tools=[REPORT_TOOL],
             tool_choice={"type": "tool", "name": "report"},

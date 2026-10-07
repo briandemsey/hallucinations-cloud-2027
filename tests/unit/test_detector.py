@@ -130,3 +130,14 @@ def test_selftest_reports_cost_and_is_cached(monkeypatch):
     assert first["cost_usd_per_check"] == pytest.approx(0.00275)
     second = client.get("/api/selftest").json()
     assert second["cached"] is True and len(calls) == len(check_api.SELFTEST_MESSAGES)
+
+
+def test_request_matches_the_installed_sdk():
+    """The first live deploy failed because the SDK no longer accepts every older argument."""
+    import inspect
+
+    from anthropic.resources.messages import Messages
+
+    fake = FakeClient(GOOD)
+    detector.assess("hello", client=fake)
+    inspect.signature(Messages.create).bind(None, **fake.calls[0])
