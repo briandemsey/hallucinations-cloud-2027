@@ -1,114 +1,149 @@
-/* H-BOTdetector rule screening, version 1. Same rules as the first prototype. Runs in this page only. */
-var HBot = (function () {
+/* H-BOTdetector page logic.
+   The full check is done by the server (POST /api/check).
+   If the server cannot answer, the quick check below answers instead,
+   under the same governing rule: an unanticipated message is presumed a scam. */
+
+var HBotRules = (function () {
   var A = "[’']";
+  // id, kind shown to the reader, pattern, weight, plain reason
   var rules = [
-    ['urgency', 'Pressure to act quickly', /\b(immediately|urgent|act now|within \d+ (?:minutes|hours)|last chance|right now)\b/i, 1, 'Pressure can make it harder to check a story.'],
-    ['authority', 'Claimed authority', /\b(FBI|IRS|Social Security|Medicare|fraud department|police|government agent|bank security)\b/i, 1, 'A familiar organization’s name does not establish who sent this.'],
-    ['threat', 'Threat or frightening consequence', /\b(arrest(?:ed)?|warrant|account (?:will be |is )?(?:suspended|frozen|locked)|legal action|shut off|deport(?:ed|ation)?)\b/i, 2, 'Threats can be used to push you into acting before verifying.'],
-    ['secrecy', 'Request for secrecy', new RegExp("\\b(don" + A + "t tell|do not tell|keep (?:this|it) (?:a )?secret|between (?:you and me|us)|tell no one)\\b", 'i'), 2, 'Keeping you away from people you trust is a manipulation tactic.'],
-    ['payment', 'Sensitive payment method', /\b(gift cards?|bitcoin|crypto(?:currency)?|wire transfer|wire (?:the |me )?money|send (?:me )?money|transfer (?:your |the )?(?:money|funds)|safe account)\b/i, 2, 'An unexpected payment request needs independent verification.'],
-    ['credentials', 'Request for private account information', /\b(?:send|share|give|provide|enter|confirm|verify|tell)\b[\s\S]{0,70}\b(?:password|PIN|verification code|one[- ]time (?:code|password)|OTP|social security number|bank details|card number|seed phrase)\b/i, 3, 'Do not give private credentials or sign-in codes to an unsolicited contact.'],
-    ['remote', 'Remote access or software request', /\b(anydesk|teamviewer|remote access|remote control|install (?:this |the |our )?(?:software|app|program)|download (?:this |the |our )?(?:app|software))\b/i, 2, 'Remote access can let someone control your device and accounts.'],
-    ['support', 'Computer infection claim', /\b(computer (?:is|has been) (?:infected|hacked)|virus detected|security alert|tech(?:nical)? support)\b/i, 1, 'Unexpected technical warnings deserve a check through a source you already trust.'],
-    ['investment', 'Promised investment returns', /\b(guaranteed (?:returns?|profits?)|risk[- ]free investment|double your money|\d+% (?:daily|weekly|monthly) (?:returns?|profit))\b/i, 3, 'Promises of exceptional or guaranteed investment gains are a warning sign.'],
-    ['prize', 'Prize or refund lure', new RegExp("\\b(you(?:" + A + "ve| have) won|claim your prize|processing fee|release (?:your |the )?(?:prize|refund)|unclaimed refund)\\b", 'i'), 1, 'A promised reward can be a lure for money or personal information.'],
-    ['relative', 'Family emergency claim', new RegExp("\\b(grandma|grandpa|grandmother|grandfather|your grandson|your granddaughter|bail money|I(?:" + A + "m| am) in trouble)\\b", 'i'), 1, 'Verify an unexpected family emergency through a known contact.'],
-    ['romance', 'Emotional relationship language', /\b(my love|sweetheart|soulmate|love you|our future together)\b/i, 1, 'Affection is not suspicious by itself. A financial request changes the context.']
+    ['credentials', 'Request for your codes or passwords', /\b(?:send|share|give|provide|enter|confirm|verify|tell)\b[\s\S]{0,70}\b(?:password|PIN|verification code|one[- ]time (?:code|password)|OTP|social security number|bank details|card number|seed phrase)\b/i, 3, 'It asks for a password, a code or account details. Nobody genuine asks for those in a message.'],
+    ['investment', 'Investment pitch', /\b(guaranteed (?:returns?|profits?)|risk[- ]free investment|double your money|\d+% (?:daily|weekly|monthly) (?:returns?|profit))\b/i, 3, 'It promises investment gains. Real investments do not arrive by message with a promise attached.'],
+    ['payment', 'Request for money that cannot be pulled back', /\b(gift cards?|bitcoin|crypto(?:currency)?|wire transfer|wire (?:the |me )?money|send (?:me )?money|zelle|venmo|cash ?app|transfer (?:your |the )?(?:money|funds)|safe account)\b/i, 2, 'It asks for money by a method chosen because the payment cannot be reversed.'],
+    ['threat', 'Threat', /\b(arrest(?:ed)?|warrant|account (?:will be |is )?(?:suspended|frozen|locked)|legal action|shut off|deport(?:ed|ation)?)\b/i, 2, 'It threatens you. A threat is there to make you act before you check.'],
+    ['secrecy', 'Demand for secrecy', new RegExp("\\b(don" + A + "t tell|do not tell|keep (?:this|it) (?:a )?secret|between (?:you and me|us)|tell no one)\\b", 'i'), 2, 'It tells you to keep this secret. That is how a scammer keeps you away from people who would stop you.'],
+    ['remote', 'Remote access request', /\b(anydesk|teamviewer|remote access|remote control|install (?:this |the |our )?(?:software|app|program)|download (?:this |the |our )?(?:app|software))\b/i, 2, 'It wants software on your computer. That hands a stranger the controls.'],
+    ['authority', 'Impersonation of an organization', /\b(FBI|IRS|Social Security|Medicare|fraud department|police|government agent|bank security)\b/i, 1, 'It uses the name of an organization you trust. Anyone can type a name.'],
+    ['relative', 'Family emergency story', new RegExp("\\b(hi (?:mom|dad|grandma|grandpa)|grandma|grandpa|grandmother|grandfather|your grandson|your granddaughter|new number|bail money|I(?:" + A + "m| am) in trouble)\\b", 'i'), 1, 'It claims to be family in trouble. That story is a script.'],
+    ['prize', 'Prize or refund lure', new RegExp("\\b(you(?:" + A + "ve| have) won|claim your prize|processing fee|release (?:your |the )?(?:prize|refund)|unclaimed refund)\\b", 'i'), 1, 'It dangles a prize or a refund you never asked about.'],
+    ['support', 'Tech support scare', /\b(computer (?:is|has been) (?:infected|hacked)|virus detected|security alert|tech(?:nical)? support)\b/i, 1, 'It says your computer has a problem. A stranger cannot know that.'],
+    ['urgency', 'Pressure to act now', /\b(immediately|urgent|act now|within \d+ (?:minutes|hours)|last chance|right now|final (?:notice|reminder)|today)\b/i, 1, 'It pushes you to act now. The hurry is the trick.'],
+    ['romance', 'Affection from a stranger', /\b(my love|sweetheart|soulmate|love you|our future together)\b/i, 1, 'It uses affection to lower your guard.']
   ];
-  function analyze(input) {
-    if (typeof input !== 'string' || !input.trim()) throw new Error('Paste a message before checking it.');
-    if (input.length > 20000) throw new Error('Please check up to 20,000 characters at a time.');
-    var findings = [];
-    rules.forEach(function (r) {
-      var m = input.match(r[2]);
-      if (m) findings.push({ id: r[0], title: r[1], evidence: m[0], weight: r[3], reason: r[4] });
-    });
-    var found = input.match(/\bhttps?:\/\/[^\s<>"']+|\bwww\.[^\s<>"']+/gi) || [];
-    var urls = found.filter(function (u, i) { return found.indexOf(u) === i; });
-    if (urls.length) findings.push({ id: 'link', title: 'Link included', evidence: urls[0], weight: 1, reason: 'This tool does not visit links or verify where they lead.' });
-    for (var i = 0; i < urls.length; i++) {
-      try {
-        var u = new URL(urls[i].indexOf('www.') === 0 ? 'https://' + urls[i] : urls[i]);
-        if (u.username || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(u.hostname) || u.hostname.indexOf('xn--') !== -1 || /^(bit\.ly|tinyurl\.com|t\.co|is\.gd|rb\.gy)$/.test(u.hostname)) {
-          findings.push({ id: 'unusual_link', title: 'Link needs extra care', evidence: urls[i], weight: 2, reason: 'This address is shortened, encoded, or uses a bare number. That does not prove fraud.' });
-          break;
-        }
-      } catch (e) { /* leave malformed addresses as plain links */ }
+
+  function assess(input) {
+    var hits = [];
+    rules.forEach(function (r) { if (r[2].test(input)) hits.push({ id: r[0], kind: r[1], weight: r[3], reason: r[4] }); });
+    var hasLink = /\bhttps?:\/\/[^\s<>"']+|\bwww\.[^\s<>"']+|\b[a-z0-9-]+\.(?:com|net|org|info|xyz|top|co)\b/i.test(input);
+    hits.sort(function (a, b) { return b.weight - a.weight; });
+    var reasons = hits.slice(0, 3).map(function (h) { return h.reason; });
+    if (hasLink && reasons.length < 3) reasons.push('It carries a link. A genuine sender does not need you to click one.');
+
+    if (hits.length || hasLink) {
+      return {
+        level: 'scam',
+        verdict: 'Treat this as a scam.',
+        kind: hits.length ? hits[0].kind + '.' : 'Unexpected link.',
+        bot: 'Presume a machine or a script. Messages like this go out in bulk to thousands of numbers.',
+        reasons: reasons,
+        steps: ['Do not click, reply or pay.', 'If it names someone you deal with, reach them through a number you already have.', 'Delete the message.']
+      };
     }
-    var ids = {};
-    findings.forEach(function (f) { ids[f.id] = true; });
-    var points = findings.reduce(function (n, f) { return n + f.weight; }, 0);
-    var serious = (ids.credentials && (ids.authority || ids.link || ids.urgency)) || (ids.payment && (ids.secrecy || ids.threat || ids.investment)) || (ids.remote && ids.support);
-    if (serious) points = Math.max(points, 7);
-    var level = points >= 7 ? 'high' : points >= 3 ? 'caution' : 'limited';
-    var disclosed = input.match(new RegExp("\\b(I(?:" + A + "m| am) (?:an? |your )?(?:AI|automated|chatbot|bot)|automated (?:assistant|message|system)|AI assistant|chatbot)\\b", 'i'));
-    var next = level === 'high'
-      ? ['Pause before replying, paying, clicking, or installing anything.', 'Verify the story using a phone number or website you already know.', 'Ask someone you trust to review the message with you.']
-      : level === 'caution'
-        ? ['Check the sender through a known, independent contact.', 'Do not share passwords, sign-in codes, or payment details.']
-        : ['If the request is unexpected, verify who sent it before acting.'];
-    if (ids.relative) next.push('Call your relative using their usual number.');
-    if (ids.authority) next.push('Contact the organization through its official app or a number from your own records.');
-    return { level: level, findings: findings, next: next, disclosed: disclosed ? disclosed[0] : null };
+    return {
+      level: 'presumed_scam',
+      verdict: 'Were you expecting this? If not, treat it as a scam and ignore it.',
+      kind: 'Unverified message.',
+      bot: 'Presume a machine or a script until the sender proves otherwise.',
+      reasons: ['A message you were not expecting is almost always a scam.', 'A genuine sender will reach you again with a message that explains itself.'],
+      steps: ['Do not reply.', 'If it names someone you deal with, reach them through a number you already have.', 'Otherwise ignore it.']
+    };
   }
-  return { analyze: analyze };
+  return { assess: assess };
 })();
 
 (function () {
+  var MAX = 6000;
   var EXAMPLES = {
-    bank: 'This is the fraud department at your bank. We detected a $4,850 transfer. Your account will be frozen unless you act immediately. Verify your password and verification code here: https://bank-security.example/verify',
+    bank: 'Brian, this is your bank’s fraud department. We detected a $4,850 transfer. Click here immediately to stop it.',
     family: 'Grandma, it is me. I’m in trouble and I need bail money today. Please don’t tell Mom. Can you buy gift cards and send me the numbers? I will explain later.',
     bot: 'Hi, I am an automated assistant from Lakeside Pharmacy. Your prescription is ready for pickup. Reply STOP to end these messages.'
   };
-  var LEVELS = {
-    high: ['Many warning signs', 'Pause and verify before you do anything.'],
-    caution: ['Some warning signs', 'Check who sent this before you act.'],
-    limited: ['Few or no warning signs matched', 'This does not establish that the message is safe.']
+  // The reviewed wording for the bank example, shown when the page first opens.
+  var OPENING = {
+    level: 'scam',
+    verdict: 'This is a scam. Do not click.',
+    kind: 'Bank impersonation.',
+    bot: 'Almost certainly a machine. This text went to thousands of phones at once with only the first name changed. Your name and number came off a list.',
+    reasons: [
+      'It never names the bank. A real alert says who it is from. A bulk text cannot, because the sender has no idea where you bank.',
+      'A real fraud alert asks you to reply YES or NO, or to call. It does not need you to click a link.',
+      'The exact dollar figure and the word “immediately” are there to make you act before you think.'
+    ],
+    steps: ['Do not click and do not reply.', 'If you are worried, call the number on the back of your card.', 'Delete the text.']
   };
-  var box = document.getElementById('message'), body = document.getElementById('result-body'),
-      hint = document.getElementById('result-hint'), err = document.getElementById('error'),
-      count = document.getElementById('count');
+
+  var form = document.getElementById('check-form'), box = document.getElementById('message'),
+      body = document.getElementById('result-body'), hint = document.getElementById('result-hint'),
+      err = document.getElementById('error'), count = document.getElementById('count'),
+      runBtn = document.getElementById('run');
+  var busy = false, slowTimer = null;
 
   function el(tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+  function line(label, text) { var p = el('p'); p.appendChild(el('b', label + ' ')); p.appendChild(document.createTextNode(text)); return p; }
+  function list(items, cls, tag) { var l = el(tag, null, cls); items.forEach(function (t) { l.appendChild(el('li', t)); }); return l; }
 
   function render(r) {
     body.textContent = '';
     var lv = el('div', null, 'level'); lv.setAttribute('data-level', r.level);
-    lv.appendChild(el('strong', LEVELS[r.level][0])); lv.appendChild(el('span', LEVELS[r.level][1]));
+    lv.appendChild(el('strong', r.verdict));
     body.appendChild(lv);
-    var who = el('p', null, 'who'); who.appendChild(el('b', 'Bot or person? '));
-    who.appendChild(document.createTextNode(r.disclosed ? 'The message says it is automated ("' + r.disclosed + '"). Who sent it is still unverified.' : 'Cannot tell from the text alone.'));
-    body.appendChild(who);
-    body.appendChild(el('h3', 'What stood out'));
-    if (r.findings.length) {
-      var ul = el('ul', null, 'findings');
-      r.findings.forEach(function (f) {
-        var li = el('li'); li.appendChild(el('b', f.title)); li.appendChild(el('q', f.evidence)); li.appendChild(el('p', f.reason)); ul.appendChild(li);
-      });
-      body.appendChild(ul);
-    } else {
-      body.appendChild(el('p', 'No warning phrases matched. A deceptive sender can still write an ordinary-looking message.', 'hint'));
-    }
-    body.appendChild(el('h3', 'What to do next'));
-    var nx = el('ul', null, 'next'); r.next.forEach(function (t) { nx.appendChild(el('li', t)); }); body.appendChild(nx);
-    body.appendChild(el('p', 'Rule screening, version 1. The result describes matched warning signs. It is not a probability of fraud.', 'method'));
+    var facts = el('div', null, 'facts-list');
+    facts.appendChild(line('Kind:', r.kind));
+    facts.appendChild(line('Bot or person:', r.bot));
+    body.appendChild(facts);
+    body.appendChild(el('h3', 'How I know'));
+    body.appendChild(list(r.reasons, 'reasons', 'ul'));
+    body.appendChild(el('h3', 'What to do'));
+    body.appendChild(list(r.steps, 'steps', 'ol'));
   }
-  function updateCount() { count.textContent = box.value.length.toLocaleString('en-US') + ' / 20,000'; }
-  function run(isExample) {
+
+  function showWorking() {
+    body.textContent = '';
+    var w = el('div', null, 'working'); w.appendChild(el('i')); w.appendChild(el('span', 'Reading the message...'));
+    body.appendChild(w);
+    slowTimer = setTimeout(function () { w.lastChild.textContent = 'Still reading. The first check of the day can take up to a minute.'; }, 6000);
+  }
+
+  function setBusy(on) {
+    busy = on; runBtn.disabled = on; runBtn.textContent = on ? 'Checking...' : 'Check message';
+    if (!on && slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
+  }
+
+  function updateCount() { count.textContent = box.value.length.toLocaleString('en-US') + ' / ' + MAX.toLocaleString('en-US'); }
+
+  function check(isExample) {
+    if (busy) return;
+    var text = box.value.trim();
     err.hidden = true;
-    try { render(HBot.analyze(box.value)); hint.textContent = isExample ? 'Shown for a made-up example. Paste your own message to replace it.' : 'For the message you pasted.'; }
-    catch (e) { err.textContent = e.message; err.hidden = false; }
+    if (!text) { err.textContent = 'Paste a message before checking it.'; err.hidden = false; return; }
+    if (text.length > MAX) { err.textContent = 'Please check up to 6,000 characters at a time.'; err.hidden = false; return; }
+    setBusy(true); showWorking();
+    hint.textContent = isExample ? 'For a made-up example.' : 'For the message you pasted.';
+
+    var done = function (result, quick) {
+      setBusy(false); render(result);
+      if (quick) hint.textContent = 'Quick check. The full check could not be reached just now, so this answer is the short version.';
+    };
+    fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) })
+      .then(function (res) { return res.json().catch(function () { return { ok: false }; }); })
+      .then(function (data) {
+        if (data && data.ok && data.result) done(data.result, false);
+        else done(HBotRules.assess(text), true);
+      })
+      .catch(function () { done(HBotRules.assess(text), true); });
   }
-  document.getElementById('check-form').addEventListener('submit', function (e) { e.preventDefault(); run(false); });
+
+  form.addEventListener('submit', function (e) { e.preventDefault(); check(false); });
   document.getElementById('clear').addEventListener('click', function () {
+    if (busy) return;
     box.value = ''; updateCount(); err.hidden = true; body.textContent = '';
-    body.appendChild(el('p', 'Paste a message and click Check message. The warning signs, the words that triggered them, and next steps appear here.', 'hint'));
+    body.appendChild(el('p', 'Paste a message and click Check message. You get a verdict, the reasons, and what to do.', 'hint'));
     hint.textContent = 'Ready when you are.'; box.focus();
   });
   box.addEventListener('input', updateCount);
   Array.prototype.forEach.call(document.querySelectorAll('[data-example]'), function (b) {
-    b.addEventListener('click', function () { box.value = EXAMPLES[b.getAttribute('data-example')]; updateCount(); run(true); });
+    b.addEventListener('click', function () { if (busy) return; box.value = EXAMPLES[b.getAttribute('data-example')]; updateCount(); check(true); });
   });
-  box.value = EXAMPLES.bank; updateCount(); run(true);
-  hint.textContent = 'Shown for the made-up bank example. Paste your own message to replace it.';
+
+  box.value = EXAMPLES.bank; updateCount(); render(OPENING);
 })();

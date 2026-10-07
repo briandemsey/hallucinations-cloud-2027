@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>H-BOTdetector</title>
-  <meta name="description" content="Paste a text, an email or a chat and see the warning signs before you click, reply or pay.">
+  <meta name="description" content="Paste a text, an email or a chat and get a straight answer before you click, reply or pay.">
   <link rel="icon" type="image/png" href="/static/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
     <div class="wrap">
       <span class="eyebrow">A second look before you act</span>
       <h1>Who's on the other end?</h1>
-      <p>Paste a text, an email or a chat. See the warning signs before you click, reply or pay.</p>
+      <p>Paste a text, an email or a chat. Get a straight answer before you click, reply or pay.</p>
     </div>
   </section>
 
@@ -30,12 +30,12 @@
         <div class="panes">
           <form class="pane" id="check-form">
             <h2><label for="message">Paste the message</label></h2>
-            <p class="hint">Your message stays on this device. Nothing is saved.</p>
-            <textarea id="message" name="message" maxlength="20000" placeholder="Paste the message here..."></textarea>
+            <p class="hint">Your message is sent to be checked. We do not save it.</p>
+            <textarea id="message" name="message" maxlength="6000" placeholder="Paste the message here..."></textarea>
             <div class="row">
               <button class="btn btn-primary" type="submit" id="run">Check message</button>
               <button class="btn btn-ghost" type="button" id="clear">Clear</button>
-              <span class="count" id="count">0 / 20,000</span>
+              <span class="count" id="count">0 / 6,000</span>
             </div>
             <p id="error" role="alert" hidden></p>
             <div class="examples">
@@ -43,14 +43,14 @@
               <div class="row">
                 <button class="btn-small" type="button" data-example="bank">Bank impersonation</button>
                 <button class="btn-small" type="button" data-example="family">Family emergency</button>
-                <button class="btn-small" type="button" data-example="bot">Helpful bot</button>
+                <button class="btn-small" type="button" data-example="bot">Polite bot</button>
               </div>
             </div>
           </form>
 
           <div class="pane" id="result" aria-live="polite">
             <h2>Your assessment</h2>
-            <p class="hint" id="result-hint">Shown for the made-up bank example. Paste your own message to replace it.</p>
+            <p class="hint" id="result-hint">An example, for a made-up bank message. Paste your own message to replace it.</p>
             <div id="result-body"></div>
           </div>
         </div>
@@ -58,14 +58,9 @@
     </div>
   </section>
 
-  <section class="band">
+  <section class="rule">
     <div class="wrap">
-      <h2>What this check can and cannot tell you</h2>
-      <div class="facts">
-        <div class="fact"><h3>It spots pressure tactics</h3><p>Urgency, threats, secrecy, gift cards, requests for codes and passwords. It shows you the exact words it found.</p></div>
-        <div class="fact"><h3>It cannot name the sender</h3><p>A person can send a scam and a bot can be helpful. Text alone does not show who, or what, wrote it.</p></div>
-        <div class="fact"><h3>No match is not all clear</h3><p>Scammers reword their messages every day. If a request is unexpected, verify it through a number you already trust.</p></div>
-      </div>
+      <p><b>The rule here:</b> a message you were not expecting is presumed a scam. A genuine sender will reach you again. The verdict is a judgment, not proof.</p>
     </div>
   </section>
 

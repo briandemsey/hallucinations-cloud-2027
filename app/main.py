@@ -5,12 +5,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.api import health
+from app.api import check, health
 
 BASE_DIR = Path(__file__).parent
 
 app = FastAPI(title="H-BOTdetector")
 app.include_router(health.router)
+app.include_router(check.router)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "web" / "static"), name="static")
 
 templates = Jinja2Templates(directory=BASE_DIR / "web" / "templates")

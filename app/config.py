@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     daily_query_limit: int = 25
     burst_limit_per_minute: int = 5
 
+    # Spending guard for the free detector: ceiling on checks per day across all visitors,
+    # and the longest message accepted.
+    global_daily_limit: int = 1000
+    max_message_chars: int = 6000
+
     # Cost paywall (cost_cap_usd is a placeholder until Phase 3/4 measured data calibrates it)
     cost_cap_usd: float = 2.00
     preauth_multiplier: float = 1.5
