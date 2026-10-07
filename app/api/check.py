@@ -75,6 +75,8 @@ def _key_shape() -> dict:
         "present": bool(key),
         "length": len(key),
         "starts_with_sk_ant": key.startswith("sk-ant-"),
+        # The type tag after "sk-ant-" (for example api03 or admin01). It is a format label, not secret.
+        "key_type": (key.split("-")[2] if key.startswith("sk-ant-") and key.count("-") >= 3 and len(key.split("-")[2]) <= 10 else None),
         "looks_like": looks_like,
         "has_quotes": any(q in key for q in "\"'"),
         "has_inner_spaces": any(c.isspace() for c in key),
