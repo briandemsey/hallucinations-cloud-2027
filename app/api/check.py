@@ -84,9 +84,25 @@ def _key_shape() -> dict:
     }
 
 
+def _key_probe() -> dict:
+    """Ask the provider whether it accepts the key. Listing models is free and uses no tokens."""
+    import anthropic
+
+    key = (_settings.anthropic_api_key or "").strip()
+    out = {"sdk_version": anthropic.__version__}
+    if not key:
+        return {**out, "accepted": False, "provider_says": "no key stored"}
+    try:
+        anthropic.Anthropic(api_key=key, timeout=15.0, max_retries=0).models.list(limit=1)
+        return {**out, "accepted": True, "provider_says": "key accepted"}
+    except Exception as exc:
+        said = str(getattr(exc, "message", "") or exc).replace(key, "[key]")[:300]
+        return {**out, "accepted": False, "error_type": type(exc).__name__, "status": getattr(exc, "status_code", None), "provider_says": said}
+
+
 @router.get("/keycheck")
 def keycheck():
-    return _key_shape()
+    return {**_key_shape(), **_key_probe()}
 
 
 @router.post("/check")

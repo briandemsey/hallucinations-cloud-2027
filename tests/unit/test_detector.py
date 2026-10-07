@@ -146,6 +146,7 @@ def test_request_matches_the_installed_sdk():
 def test_keycheck_reports_shape_and_never_the_key(monkeypatch):
     secret = "sk-ant-api03-" + "Z" * 40
     monkeypatch.setattr(check_api._settings, "anthropic_api_key", " " + secret + "\n")
+    monkeypatch.setattr(check_api, "_key_probe", lambda: {"accepted": False})
     r = client.get("/api/keycheck")
     body = r.json()
     assert body["starts_with_sk_ant"] is True and body["length"] == len(secret) and body["had_outer_spaces"] is True
