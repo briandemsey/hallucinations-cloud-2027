@@ -6,6 +6,7 @@ GET  /api/selftest  runs the fixed test messages through the live model (cached)
 The pasted message is never written to a log or a database.
 """
 
+import logging
 import threading
 import time
 
@@ -18,6 +19,7 @@ from app.core.botdetect import detector
 from app.core.usage.limits import Limiter
 
 router = APIRouter(prefix="/api")
+log = logging.getLogger("uvicorn.error")
 
 _settings = get_settings()
 limiter = Limiter(
@@ -157,6 +159,12 @@ def selftest():
             "cost_usd_per_check": round(cost / len(good), 5) if good else None,
             "cases": cases,
         }
+        # The test messages are fixed and made up, so their results are fine to log.
+        log.info(
+            "SELFTEST passed=%s/%s cost_per_check=%s verdicts=%s",
+            len(good), len(cases), body["cost_usd_per_check"],
+            " | ".join(f"{c['name']}: {c.get('verdict') or c.get('error')}" for c in cases),
+        )
         if good:
             _selftest_cache.update(at=now, body=body)
         return {**body, "cached": False}

@@ -36,3 +36,8 @@ def test_static_files_served():
 
 def test_health():
     assert client.get("/healthz").json() == {"status": "ok"}
+
+
+def test_robots_allows_everything():
+    r = client.get("/robots.txt")
+    assert r.status_code == 200 and "Allow: /" in r.text
