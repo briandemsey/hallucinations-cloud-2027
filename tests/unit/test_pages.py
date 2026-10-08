@@ -14,8 +14,10 @@ def test_detector_is_the_home_page():
 
 def test_step_one_shows_only_the_detector():
     text = client.get("/").text
-    for banned in ("Hallucinations.cloud", "H-LLM", "Multi-Model", "eight"):
-        assert banned not in text, banned
+    import re
+
+    for banned in ("Hallucinations.cloud", "H-LLM", "Multi-Model", r"\beight\b"):
+        assert not re.search(banned, text, re.I), banned
 
 
 def test_substack_and_book_tabs_present():
@@ -30,7 +32,7 @@ def test_old_address_redirects():
 
 
 def test_static_files_served():
-    for path in ("/static/site.css", "/static/hbot.js", "/static/logo.png", "/static/brian.jpg"):
+    for path in ("/static/site.css", "/static/hbot.js", "/static/logo.png", "/static/brian.jpg", "/static/book-cover.jpg"):
         assert client.get(path).status_code == 200, path
 
 
@@ -41,3 +43,12 @@ def test_health():
 def test_robots_allows_everything():
     r = client.get("/robots.txt")
     assert r.status_code == 200 and "Allow: /" in r.text
+
+
+def test_book_section_and_return_links():
+    text = client.get("/").text
+    assert 'id="book"' in text and "/static/book-cover.jpg" in text
+    assert "Available at Amazon soon" in text
+    assert 'href="/#book"' in text
+    footer = text[text.index("<footer"):]
+    assert "Back to the detector" in footer
