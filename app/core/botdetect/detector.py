@@ -3,6 +3,7 @@
 The message text is never logged or stored here.
 """
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -54,8 +55,28 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _as_list(items) -> list:
+    """The model sometimes sends a list as one string: JSON text, or lines. Never split it into letters."""
+    if items is None:
+        return []
+    if isinstance(items, str):
+        text = items.strip()
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    return parsed
+            except ValueError:
+                pass
+        lines = [re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", ln) for ln in text.splitlines()]
+        return [ln for ln in lines if ln.strip()]
+    if isinstance(items, (list, tuple)):
+        return list(items)
+    return [items]
+
+
 def _clean_list(items, limit: int = 3) -> list[str]:
-    out = [_clean(i) for i in (items or []) if str(i).strip()]
+    out = [_clean(i) for i in _as_list(items) if str(i).strip()]
     return out[:limit]
 
 

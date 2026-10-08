@@ -64,6 +64,20 @@ def test_house_style_is_enforced_on_the_way_out():
     assert result.level == "presumed_scam"
 
 
+def test_lists_sent_as_one_string_are_not_split_into_letters():
+    """Live self test 2026-10-07: package and injection cases came back as single letters."""
+    as_json = dict(GOOD, reasons='["USPS does not text links.", "The domain is fake."]', steps='["Do not click.", "Delete it."]')
+    r = detector.build_assessment(as_json)
+    assert r.reasons == ["USPS does not text links.", "The domain is fake."]
+    assert r.steps == ["Do not click.", "Delete it."]
+    as_lines = dict(GOOD, reasons="- USPS does not text links.\n- The domain is fake.", steps="1. Do not click.\n2. Delete it.")
+    r = detector.build_assessment(as_lines)
+    assert r.reasons == ["USPS does not text links.", "The domain is fake."]
+    assert r.steps == ["Do not click.", "Delete it."]
+    r = detector.build_assessment(dict(GOOD, steps="Do not click."))
+    assert r.steps == ["Do not click."]
+
+
 def test_model_failure_becomes_detector_unavailable():
     with pytest.raises(detector.DetectorUnavailable):
         detector.assess("x", client=FakeClient(error=RuntimeError("boom")))
