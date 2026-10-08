@@ -24,7 +24,14 @@ a { color: inherit; }
 a:focus-visible, button:focus-visible, textarea:focus-visible { outline: 3px solid var(--mark-b); outline-offset: 3px; }
 h1, h2, h3 { text-wrap: balance; line-height: 1.15; margin: 0; }
 
-.top { border-bottom: 1px solid var(--line); background: var(--paper); }
+.top { border-bottom: 1px solid var(--line); background: var(--paper); position: sticky; top: 0; z-index: 20; }
+#check, #brian { scroll-margin-top: 96px; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ext { font-size: 0.8em; }
+.back { display: inline-block; margin-top: 18px; font-weight: 600; color: var(--action); text-decoration: none; font-size: 1.05rem; }
+.back:hover { text-decoration: underline; }
 .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; padding-block: 14px; }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 800; font-size: 1.25rem; }
 .brand img { width: 52px; height: 52px; }
@@ -102,6 +109,7 @@ textarea::placeholder { color: #7b8198; }
 .founder h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
 .founder p { margin: 0; color: var(--ink-soft); }
 .founder .row { margin-top: 16px; }
+@media (max-width: 640px) { #check, #brian { scroll-margin-top: 150px; } }
 
 footer { border-top: 1px solid var(--line); padding-block: 26px; font-size: 0.95rem; color: var(--ink-soft); }
 footer .wrap { display: flex; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; }
