@@ -78,13 +78,44 @@ def build_assessment(data: dict, input_tokens: int = 0, output_tokens: int = 0) 
     return result
 
 
-def _client():
+_AUTH_MODES = ("x-api-key", "bearer")
+_auth_mode_cache: dict[str, str] = {}
+
+
+def _make_client(key: str, mode: str, timeout: float = 25.0, max_retries: int = 1):
+    """The provider accepts a key either in the x-api-key header or as a bearer token."""
     import anthropic
 
+    if mode == "bearer":
+        return anthropic.Anthropic(auth_token=key, api_key=None, timeout=timeout, max_retries=max_retries)
+    return anthropic.Anthropic(api_key=key, timeout=timeout, max_retries=max_retries)
+
+
+def probe_key(key: str) -> dict:
+    """Ask the provider, both ways, whether it accepts the key. Listing models is free."""
+    results = {}
+    for mode in _AUTH_MODES:
+        try:
+            _make_client(key, mode, timeout=15.0, max_retries=0).models.list(limit=1)
+            results[mode] = "accepted"
+        except Exception as exc:
+            said = str(getattr(exc, "message", "") or exc).replace(key, "[key]")
+            results[mode] = f"{type(exc).__name__}: {said[:220]}"
+    return results
+
+
+def _auth_mode(key: str) -> str:
+    if key not in _auth_mode_cache:
+        results = probe_key(key)
+        _auth_mode_cache[key] = next((m for m in _AUTH_MODES if results[m] == "accepted"), "x-api-key")
+    return _auth_mode_cache[key]
+
+
+def _client():
     key = (get_settings().anthropic_api_key or "").strip()
     if not key:
         raise DetectorUnavailable("no API key configured")
-    return anthropic.Anthropic(api_key=key, timeout=25.0, max_retries=1)
+    return _make_client(key, _auth_mode(key))
 
 
 def assess(message: str, client=None) -> Assessment:

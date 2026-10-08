@@ -23,8 +23,9 @@ def _report_key_at_startup() -> None:
     try:
         info = {**check._key_shape(), **check._key_probe()}
         log.info(
-            "KEYCHECK accepted=%s key_type=%s length=%s provider_says=%s",
-            info.get("accepted"), info.get("key_type"), info.get("length"), info.get("provider_says"),
+            "KEYCHECK accepted=%s via=%s hint=%s length=%s | x-api-key: %s | bearer: %s",
+            info.get("accepted"), info.get("accepted_via"), check._key_hint(), info.get("length"),
+            info.get("via_x_api_key"), info.get("via_bearer"),
         )
     except Exception as exc:  # never block startup on this
         log.info("KEYCHECK could not run: %s", type(exc).__name__)

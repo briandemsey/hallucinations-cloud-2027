@@ -87,19 +87,29 @@ def _key_shape() -> dict:
 
 
 def _key_probe() -> dict:
-    """Ask the provider whether it accepts the key. Listing models is free and uses no tokens."""
+    """Ask the provider whether it accepts the key, in each of the two ways a key can be sent."""
     import anthropic
 
     key = (_settings.anthropic_api_key or "").strip()
     out = {"sdk_version": anthropic.__version__}
     if not key:
         return {**out, "accepted": False, "provider_says": "no key stored"}
-    try:
-        anthropic.Anthropic(api_key=key, timeout=15.0, max_retries=0).models.list(limit=1)
-        return {**out, "accepted": True, "provider_says": "key accepted"}
-    except Exception as exc:
-        said = str(getattr(exc, "message", "") or exc).replace(key, "[key]")[:300]
-        return {**out, "accepted": False, "error_type": type(exc).__name__, "status": getattr(exc, "status_code", None), "provider_says": said}
+    results = detector.probe_key(key)
+    accepted = [m for m, r in results.items() if r == "accepted"]
+    return {
+        **out,
+        "accepted": bool(accepted),
+        "accepted_via": accepted[0] if accepted else None,
+        "provider_says": "key accepted" if accepted else results["x-api-key"],
+        "via_x_api_key": results["x-api-key"],
+        "via_bearer": results["bearer"],
+    }
+
+
+def _key_hint() -> str:
+    """The same partial hint the provider's own console shows beside each key. Logged, never served."""
+    key = (_settings.anthropic_api_key or "").strip()
+    return f"{key[:14]}...{key[-4:]}" if len(key) >= 40 else "(too short to hint)"
 
 
 @router.get("/keycheck")
