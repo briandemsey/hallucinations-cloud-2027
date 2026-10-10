@@ -75,8 +75,19 @@ def _as_list(items) -> list:
     return [items]
 
 
+def _split_pipes(items: list) -> list:
+    """The worked examples separate items with ' | ', and the model sometimes copies that into one item."""
+    out = []
+    for i in items:
+        if isinstance(i, str) and "|" in i:
+            out.extend(part for part in i.split("|") if part.strip())
+        else:
+            out.append(i)
+    return out
+
+
 def _clean_list(items, limit: int = 3) -> list[str]:
-    out = [_clean(i) for i in _as_list(items) if str(i).strip()]
+    out = [_clean(i) for i in _split_pipes(_as_list(items)) if str(i).strip()]
     return out[:limit]
 
 

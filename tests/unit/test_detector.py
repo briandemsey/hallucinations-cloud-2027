@@ -210,3 +210,17 @@ def test_check_endpoint_refuses_pictures_over_5_mb():
     big = _b64.b64encode(b"0" * (5 * 1024 * 1024 + 1)).decode()
     r = client.post("/api/check", json={"image": big, "image_type": "image/png"})
     assert r.status_code == 413
+
+
+def test_items_joined_with_pipes_are_split():
+    data = {
+        "level": "presumed_scam",
+        "verdict": "This is engagement bait run by a third party.",
+        "kind": "Engagement bait.",
+        "bot": "A person or a script with a person behind it.",
+        "reasons": ["First reason. | Second reason. | Third reason."],
+        "steps": ["Do not comment. | Do not click. | Find help yourself."],
+    }
+    a = detector.build_assessment(data)
+    assert a.reasons == ["First reason.", "Second reason.", "Third reason."]
+    assert a.steps == ["Do not comment.", "Do not click.", "Find help yourself."]
