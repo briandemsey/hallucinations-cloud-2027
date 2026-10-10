@@ -29,9 +29,20 @@
         <div class="window-rule"></div>
         <div class="panes">
           <form class="pane" id="check-form">
-            <h2><label for="message">Paste the message</label></h2>
-            <p class="hint">Your message is sent to be checked. We do not save it.</p>
+            <h2><label for="message">Paste the message or add a picture</label></h2>
+            <p class="hint">Your message or picture is sent to be checked. We do not save it.</p>
             <textarea id="message" name="message" maxlength="6000" placeholder="Paste the message here..."></textarea>
+            <div class="picture" id="picture">
+              <input type="file" id="picture-file" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+              <div class="picture-empty" id="picture-empty">
+                <button class="btn-small" type="button" id="picture-choose">Add a picture</button>
+                <span>or drop or paste a screenshot here</span>
+              </div>
+              <div class="picture-chosen" id="picture-chosen" hidden>
+                <img id="picture-preview" alt="The picture you added">
+                <button class="btn-small" type="button" id="picture-remove">Remove picture</button>
+              </div>
+            </div>
             <div class="row">
               <button class="btn btn-primary" type="submit" id="run">Check message</button>
               <button class="btn btn-ghost" type="button" id="clear">Clear</button>

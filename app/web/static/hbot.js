@@ -111,20 +111,79 @@ var HBotRules = (function () {
 
   function updateCount() { count.textContent = box.value.length.toLocaleString('en-US') + ' / ' + MAX.toLocaleString('en-US'); }
 
+  // ---- a picture of the message (screenshot) ----
+  var picture = null; // { data: base64 without prefix, type: 'image/png' }
+  var pZone = document.getElementById('picture'), pFile = document.getElementById('picture-file'),
+      pEmpty = document.getElementById('picture-empty'), pChosen = document.getElementById('picture-chosen'),
+      pPreview = document.getElementById('picture-preview');
+  var PICTURE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+  function showPicture(dataUrl) {
+    pPreview.src = dataUrl; pEmpty.hidden = true; pChosen.hidden = false;
+  }
+  function clearPicture() {
+    picture = null; pFile.value = ''; pPreview.removeAttribute('src'); pChosen.hidden = true; pEmpty.hidden = false;
+  }
+  function usePicture(file) {
+    err.hidden = true;
+    if (!file || PICTURE_TYPES.indexOf(file.type) < 0) {
+      err.textContent = 'Please add a JPEG, PNG, GIF or WebP picture.'; err.hidden = false; return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        // Shrink big photos before sending. The checker reads at most 1568 pixels on the long side anyway.
+        var long = Math.max(img.width, img.height), scale = long > 1568 ? 1568 / long : 1;
+        var url = reader.result;
+        if (scale < 1 || file.size > 4 * 1024 * 1024) {
+          var c = document.createElement('canvas');
+          c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          url = c.toDataURL('image/jpeg', 0.9);
+        }
+        var m = /^data:(image\/[a-z]+);base64,(.*)$/.exec(url);
+        if (!m) { err.textContent = 'That picture could not be read. Please try another.'; err.hidden = false; return; }
+        picture = { type: m[1], data: m[2] };
+        showPicture(url);
+      };
+      img.onerror = function () { err.textContent = 'That picture could not be read. Please try another.'; err.hidden = false; };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById('picture-choose').addEventListener('click', function () { pFile.click(); });
+  document.getElementById('picture-remove').addEventListener('click', clearPicture);
+  pFile.addEventListener('change', function () { if (pFile.files[0]) usePicture(pFile.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    pZone.addEventListener(ev, function (e) { e.preventDefault(); pZone.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    pZone.addEventListener(ev, function (e) { e.preventDefault(); pZone.classList.remove('over'); });
+  });
+  pZone.addEventListener('drop', function (e) { var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) usePicture(f); });
+  document.addEventListener('paste', function (e) {
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.indexOf('image/') === 0) { e.preventDefault(); usePicture(items[i].getAsFile()); return; }
+    }
+  });
+
   function check(isExample) {
     if (busy) return;
     var text = box.value.trim();
+    var pic = isExample ? null : picture;
     err.hidden = true;
-    if (!text) { err.textContent = 'Paste a message before checking it.'; err.hidden = false; return; }
+    if (!text && !pic) { err.textContent = 'Paste a message or add a picture before checking.'; err.hidden = false; return; }
     if (text.length > MAX) { err.textContent = 'Please check up to 6,000 characters at a time.'; err.hidden = false; return; }
     setBusy(true); showWorking();
-    hint.textContent = isExample ? 'For a made-up example.' : 'For the message you pasted.';
+    hint.textContent = isExample ? 'For a made-up example.' : (pic ? 'For the picture you added.' : 'For the message you pasted.');
 
     var done = function (result, quick) {
       setBusy(false); render(result);
       if (quick) hint.textContent = 'Quick check. The full check could not be reached just now, so this answer is the short version.';
     };
-    fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) })
+    fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pic ? { message: text, image: pic.data, image_type: pic.type } : { message: text }) })
       .then(function (res) { return res.json().catch(function () { return { ok: false }; }); })
       .then(function (data) {
         if (data && data.ok && data.result) done(data.result, false);
@@ -136,7 +195,7 @@ var HBotRules = (function () {
   form.addEventListener('submit', function (e) { e.preventDefault(); check(false); });
   document.getElementById('clear').addEventListener('click', function () {
     if (busy) return;
-    box.value = ''; updateCount(); err.hidden = true; body.textContent = '';
+    box.value = ''; updateCount(); clearPicture(); err.hidden = true; body.textContent = '';
     body.appendChild(el('p', 'Paste a message and click Check message. You get a verdict, the reasons, and what to do.', 'hint'));
     hint.textContent = 'Ready when you are.'; box.focus();
   });

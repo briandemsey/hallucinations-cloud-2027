@@ -139,7 +139,22 @@ def _client():
     return _make_client(key, _auth_mode(key))
 
 
-def assess(message: str, client=None) -> Assessment:
+IMAGE_TYPES = ("image/jpeg", "image/png", "image/gif", "image/webp")
+
+
+def _content(message: str, image_b64: str | None, image_type: str | None):
+    """Text only, or a picture of the message (with any words the reader added)."""
+    if not image_b64:
+        return f"<message>\n{message}\n</message>"
+    note = (f"<message>\n{message}\n</message>" if message
+            else "<message>\nThe message is in the picture above.\n</message>")
+    return [
+        {"type": "image", "source": {"type": "base64", "media_type": image_type, "data": image_b64}},
+        {"type": "text", "text": "The picture above is a screenshot of what the reader received or saw.\n" + note},
+    ]
+
+
+def assess(message: str, client=None, image_b64: str | None = None, image_type: str | None = None) -> Assessment:
     settings = get_settings()
     client = client or _client()
     try:
@@ -149,7 +164,8 @@ def assess(message: str, client=None) -> Assessment:
             system=SYSTEM_PROMPT,
             tools=[REPORT_TOOL],
             tool_choice={"type": "tool", "name": "report"},
-            messages=[{"role": "user", "content": f"<message>\n{message}\n</message>"}],
+            messages=[{"role": "user", "content": _content(message, image_b64, image_type)}],
+            timeout=45.0 if image_b64 else 25.0,
         )
     except DetectorUnavailable:
         raise

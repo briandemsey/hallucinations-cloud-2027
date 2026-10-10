@@ -167,3 +167,46 @@ def test_keycheck_reports_shape_and_never_the_key(monkeypatch):
     assert secret not in r.text and "ZZZZ" not in r.text
     monkeypatch.setattr(check_api._settings, "anthropic_api_key", "sk-proj-abc")
     assert client.get("/api/keycheck").json()["looks_like"] == "an OpenAI-style key"
+
+
+# --- pictures -------------------------------------------------------------
+
+import base64 as _b64
+
+_PNG = _b64.b64encode(
+    bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                  "1f15c4890000000d49444154789c6360000002000100e221bc330000000049454e44ae426082")
+).decode()
+
+
+def test_picture_is_sent_to_the_model_before_the_words():
+    fake = FakeClient(payload=GOOD)
+    detector.assess("", client=fake, image_b64=_PNG, image_type="image/png")
+    content = fake.calls[0]["messages"][0]["content"]
+    assert content[0]["type"] == "image"
+    assert content[0]["source"] == {"type": "base64", "media_type": "image/png", "data": _PNG}
+    assert "The message is in the picture above." in content[1]["text"]
+
+
+def test_check_endpoint_accepts_a_picture_without_text(monkeypatch):
+    seen = {}
+
+    def fake(message, image_b64=None, image_type=None):
+        seen.update(message=message, image=image_b64, kind=image_type)
+        return detector.build_assessment(GOOD)
+
+    monkeypatch.setattr(detector, "assess", fake)
+    r = client.post("/api/check", json={"message": "", "image": _PNG, "image_type": "image/png"})
+    assert r.status_code == 200 and r.json()["ok"] is True
+    assert seen == {"message": "", "image": _PNG, "kind": "image/png"}
+
+
+def test_check_endpoint_refuses_other_file_types():
+    r = client.post("/api/check", json={"image": _PNG, "image_type": "application/pdf"})
+    assert r.status_code == 415
+
+
+def test_check_endpoint_refuses_pictures_over_5_mb():
+    big = _b64.b64encode(b"0" * (5 * 1024 * 1024 + 1)).decode()
+    r = client.post("/api/check", json={"image": big, "image_type": "image/png"})
+    assert r.status_code == 413

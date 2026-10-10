@@ -1,11 +1,13 @@
 """The detector's two endpoints.
 
-POST /api/check     one pasted message in, one assessment out
+POST /api/check     one pasted message or picture in, one assessment out
 GET  /api/selftest  runs the fixed test messages through the live model (cached)
 
-The pasted message is never written to a log or a database.
+The pasted message and any picture are never written to a log or a database.
 """
 
+import base64
+import binascii
 import logging
 import threading
 import time
@@ -44,7 +46,11 @@ _selftest_lock = threading.Lock()
 
 
 class CheckIn(BaseModel):
-    message: str
+    message: str = ""
+    image: str | None = None        # base64, without the "data:...;base64," prefix
+    image_type: str | None = None   # image/jpeg, image/png, image/gif or image/webp
+
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
 def _visitor(request: Request) -> str:
@@ -120,7 +126,17 @@ def keycheck():
 @router.post("/check")
 def check(body: CheckIn, request: Request):
     message = (body.message or "").strip()
-    if not message:
+    image = (body.image or "").strip() or None
+    if image:
+        if body.image_type not in detector.IMAGE_TYPES:
+            return JSONResponse({"ok": False, "reason": "image_type"}, status_code=415)
+        try:
+            size = len(base64.b64decode(image, validate=True))
+        except (binascii.Error, ValueError):
+            return JSONResponse({"ok": False, "reason": "image_bad"}, status_code=400)
+        if size > MAX_IMAGE_BYTES:
+            return JSONResponse({"ok": False, "reason": "image_too_big"}, status_code=413)
+    if not message and not image:
         return JSONResponse({"ok": False, "reason": "empty"}, status_code=400)
     if len(message) > _settings.max_message_chars:
         return JSONResponse({"ok": False, "reason": "too_long"}, status_code=413)
@@ -130,7 +146,10 @@ def check(body: CheckIn, request: Request):
         return _fallback(why, 429)
 
     try:
-        result = detector.assess(message)
+        if image:
+            result = detector.assess(message, image_b64=image, image_type=body.image_type)
+        else:
+            result = detector.assess(message)
     except detector.DetectorUnavailable:
         return _fallback("unavailable", 503)
     return {"ok": True, "result": result.public()}
