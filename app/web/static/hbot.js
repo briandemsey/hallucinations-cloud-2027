@@ -155,13 +155,43 @@ var HBotRules = (function () {
   document.getElementById('picture-choose').addEventListener('click', function () { pFile.click(); });
   document.getElementById('picture-remove').addEventListener('click', clearPicture);
   pFile.addEventListener('change', function () { if (pFile.files[0]) usePicture(pFile.files[0]); });
-  ['dragenter', 'dragover'].forEach(function (ev) {
-    pZone.addEventListener(ev, function (e) { e.preventDefault(); pZone.classList.add('over'); });
+  // Drag and drop: the whole left side takes a picture or dragged text.
+  // Anywhere else on the page, a stray drop is ignored instead of opening the file and leaving the page.
+  var pane = document.getElementById('check-form'), dragDepth = 0;
+  function dragHasContent(e) {
+    var t = (e.dataTransfer && e.dataTransfer.types) || [];
+    for (var i = 0; i < t.length; i++) { if (t[i] === 'Files' || t[i] === 'text/plain') return true; }
+    return false;
+  }
+  function endDrag() { dragDepth = 0; pane.classList.remove('drop-over'); }
+  pane.addEventListener('dragenter', function (e) {
+    if (!dragHasContent(e)) return;
+    e.preventDefault(); dragDepth++; pane.classList.add('drop-over');
   });
-  ['dragleave', 'drop'].forEach(function (ev) {
-    pZone.addEventListener(ev, function (e) { e.preventDefault(); pZone.classList.remove('over'); });
+  pane.addEventListener('dragover', function (e) {
+    if (!dragHasContent(e)) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
   });
-  pZone.addEventListener('drop', function (e) { var f = e.dataTransfer && e.dataTransfer.files[0]; if (f) usePicture(f); });
+  pane.addEventListener('dragleave', function () { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) pane.classList.remove('drop-over'); });
+  pane.addEventListener('drop', function (e) {
+    e.preventDefault(); endDrag(); err.hidden = true;
+    var dt = e.dataTransfer; if (!dt) return;
+    var f = dt.files && dt.files[0];
+    if (f) {
+      if (f.type.indexOf('image/') === 0) { usePicture(f); return; }
+      err.textContent = 'Only a picture can be dropped here. For an email or a document, copy its words and paste them in the box.'; err.hidden = false; return;
+    }
+    var text = (dt.getData('text/plain') || '').trim();
+    if (text) {
+      var isExampleText = Object.keys(EXAMPLES).some(function (k) { return EXAMPLES[k] === box.value; });
+      box.value = (box.value.trim() && !isExampleText ? box.value.replace(/\s+$/, '') + '\n\n' : '') + text;
+      if (box.value.length > MAX) box.value = box.value.slice(0, MAX);
+      updateCount(); box.focus();
+    }
+  });
+  ['dragover', 'drop'].forEach(function (ev) {
+    window.addEventListener(ev, function (e) { if (!pane.contains(e.target)) { e.preventDefault(); if (ev === 'drop') endDrag(); } });
+  });
   document.addEventListener('paste', function (e) {
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++) {

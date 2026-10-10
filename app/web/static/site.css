@@ -145,7 +145,8 @@ footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
 
 /* Picture of a message */
 .picture { margin-top: 12px; border: 2px dashed var(--line); border-radius: 12px; padding: 12px 14px; background: var(--paper); }
-.picture.over { border-color: var(--ink-soft); background: var(--wash); }
+#check-form { position: relative; }
+#check-form.drop-over::after { content: attr(data-drop); position: absolute; inset: 8px; display: flex; align-items: center; justify-content: center; border: 3px dashed var(--ink-soft); border-radius: 14px; background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 1.5rem; font-weight: 800; pointer-events: none; z-index: 5; }
 .picture-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ink-soft); font-size: 0.95rem; }
 .picture-chosen { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .picture-chosen img { max-width: 140px; max-height: 140px; border: 1px solid var(--line); border-radius: 8px; }
